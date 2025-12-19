@@ -117,13 +117,17 @@
 				return
 	
 	var/area/warfare/climbto = get_area(get_turf(src)) //prevents climbing into areas you shouldnt
-	var/turf/locationtogoto = get_turf(src) 
-	var/turf/currentlocation = get_turf(user) 
-	if(locationtogoto.y > currentlocation.y) //if climbing north, set direction to north
-		user.set_dir(NORTH)
-	else if(locationtogoto.y < currentlocation.y) //if climbing south, set direction to south
-		user.set_dir(SOUTH) //goddamit theres gotta be a better way to do this
-	if(climbto.Enter(user) == FALSE)
+
+	// Direct assignment to bypass fixeye lock for the check
+	var/old_dir = user.dir
+	user.dir = get_dir(user, src)
+
+	var/can_enter = climbto.Enter(user)
+
+	// Restore direction immediately
+	user.dir = old_dir
+
+	if(can_enter == FALSE)
 		return
 	
 	user.visible_message("<span class='warning'>[user] starts climbing onto \the [src]!</span>")
@@ -218,6 +222,10 @@
 			for(var/obj/structure/object in contents)
 				if(istype(object, /obj/structure/landmine) || istype(object, /obj/structure/barbwire) || istype(object, /obj/structure/anti_tank))
 					to_chat(user, "There are structures or landmines in the way.")
+					user.doing_something = FALSE
+					return
+				if(istype(object, /obj/structure/dirt_wall))
+					to_chat(user, "There's already a dirt barricade here!")
 					user.doing_something = FALSE
 					return
 			playsound(src, 'sound/effects/dig_shovel.ogg', 50, 0)
